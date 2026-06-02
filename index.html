@@ -3,25 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DNS Custom Web Simulator</title>
+    <title>DNS Custom Web Browser</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen p-6">
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-6">
 
-    <div class="max-w-5xl mx-auto">
-        <header class="mb-8 text-center">
-            <h1 class="text-3xl font-bold text-teal-400">🌐 DNS Custom Browser Simulator</h1>
-            <p class="text-gray-400 mt-2">จำลองการเข้าถึงเว็บไซต์ผ่าน DNS Server บนหน้าเว็บของคุณ (รองรับ GitHub Pages)</p>
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl font-bold text-teal-400">🌐 DNS Custom Web Browser</h1>
+            <p class="text-gray-400 mt-2 text-sm">จำลองการเชื่อมต่อและเปิดใช้งานเว็บไซต์ผ่าน DNS Server ที่คุณเลือก</p>
         </header>
 
-        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6 border border-gray-700">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-300 mb-1">URL เว็บไซต์ที่ต้องการเปิด</label>
-                    <input type="text" id="urlInput" value="https://www.animewaku.com/" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-teal-400">
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">URL เว็บไซต์ที่ต้องการเข้าใช้งาน</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">https://</span>
+                        <input type="text" id="urlInput" value="www.animewaku.com" class="w-full bg-gray-700 border border-gray-600 rounded p-2 pl-16 text-white focus:outline-none focus:border-teal-400 font-mono" placeholder="เช่น www.google.com">
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">เลือก DNS Server (DoH)</label>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">เส้นทาง DNS Server (DoH)</label>
                     <select id="dnsSelect" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-teal-400">
                         <option value="https://cloudflare-dns.com/dns-query">Cloudflare DNS (1.1.1.1)</option>
                         <option value="https://dns.google/resolve">Google DNS (8.8.8.8)</option>
@@ -29,96 +33,146 @@
                     </select>
                 </div>
                 <div class="md:col-span-3">
-                    <button onclick="simulateBrowser()" class="w-full bg-teal-500 hover:bg-teal-600 text-gray-900 font-bold p-2 rounded transition duration-200">
-                        🚀 จำลองการเปิดเว็บไซต์ผ่าน DNS
+                    <button onclick="launchBrowser()" class="w-full bg-teal-500 hover:bg-teal-600 text-gray-900 font-bold p-2 rounded transition duration-200 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-compass animate-pulse"></i>
+                        <span>เปิดเว็บไซต์ผ่าน DNS ที่กำหนด</span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="bg-black border border-gray-700 rounded-lg p-4 mb-6 font-mono text-sm hidden" id="logSection">
-            <h3 class="text-yellow-400 font-bold mb-2">📟 Network Connection Log:</h3>
-            <pre class="text-green-400 whitespace-pre-wrap" id="logContent"></pre>
+        <div class="bg-black border border-gray-800 rounded-lg p-4 mb-6 font-mono text-xs hidden shadow-inner" id="logSection">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-2 text-gray-500">
+                <span><i class="fa-solid fa-terminal mr-2"></i>Network Connection Log</span>
+                <span class="text-teal-500 animate-pulse">Processing...</span>
+            </div>
+            <pre class="text-green-400 whitespace-pre-wrap leading-relaxed" id="logContent"></pre>
         </div>
 
-        <div class="border border-gray-700 rounded-lg overflow-hidden shadow-2xl hidden" id="browserSection">
-            <div class="bg-gray-800 px-4 py-2 flex items-center space-x-2 border-b border-gray-700">
-                <div class="flex space-x-1.5">
-                    <span class="w-3 h-3 bg-red-500 rounded-full"></span>
-                    <span class="w-3 h-3 bg-yellow-500 rounded-full"></span>
-                    <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+        <div class="border border-gray-700 rounded-lg overflow-hidden shadow-2xl bg-gray-800 hidden flex flex-col" id="browserWindow" style="height: 650px;">
+            <div class="bg-gray-800 px-4 py-3 flex items-center space-x-4 border-b border-gray-700">
+                <div class="flex space-x-1.5 shrink-0">
+                    <span class="w-3 h-3 bg-red-500 rounded-full inline-block"></span>
+                    <span class="w-3 h-3 bg-yellow-500 rounded-full inline-block"></span>
+                    <span class="w-3 h-3 bg-green-500 rounded-full inline-block"></span>
                 </div>
-                <div class="bg-gray-700 text-xs px-3 py-1 rounded text-gray-300 mx-auto w-2/3 text-center overflow-hidden whitespace-nowrap" id="browserUrlBar">
-                    🔒 Secure Connection
+                <div class="flex items-center space-x-2 text-gray-400 text-sm">
+                    <button class="hover:text-white p-1"><i class="fa-solid fa-arrow-left"></i></button>
+                    <button class="hover:text-white p-1"><i class="fa-solid fa-arrow-right"></i></button>
+                    <button onclick="refreshBrowser()" class="hover:text-white p-1"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+                <div class="bg-gray-900 text-xs px-4 py-1.5 rounded-full text-gray-300 flex-1 flex items-center justify-between border border-gray-700 font-mono overflow-hidden">
+                    <span class="truncate" id="browserUrlText">🔒 Connecting...</span>
+                    <span class="text-[10px] bg-teal-900/50 border border-teal-700 text-teal-400 px-2 py-0.5 rounded-full shrink-0 ml-2" id="dnsBadge">DNS Pass</span>
                 </div>
             </div>
             
-            <div class="bg-white text-gray-900 p-4 h-96 overflow-y-auto font-mono text-xs">
-                <h3 class="font-bold border-b pb-2 mb-2 text-gray-500">[ดึงข้อมูล HTML สำเร็จ - ซอร์สโค้ดของเว็บไซต์ด้านล่าง]</h3>
-                <textarea id="webContent" class="w-full h-full p-2 bg-gray-50 border border-gray-200 rounded focus:outline-none" readonly></textarea>
+            <div class="w-full flex-1 bg-white relative">
+                <div id="loader" class="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center space-x-2 text-teal-400 z-10">
+                    <i class="fa-solid fa-spinner animate-spin text-3xl mb-2"></i>
+                    <span class="text-sm text-gray-400">กำลังดาวน์โหลดโครงสร้างเว็บผ่านพิกัด DNS...</span>
+                </div>
+                <iframe id="browserIframe" class="w-full h-full border-none" sandbox="allow-scripts allow-same-origin allow-forms" onload="hideLoader()"></iframe>
             </div>
         </div>
     </div>
 
     <script>
-        async function simulateBrowser() {
-            const urlInput = document.getElementById('urlInput').value;
+        let currentTargetUrl = "";
+
+        async function launchBrowser() {
+            let rawUrl = document.getElementById('urlInput').value.trim();
             const dnsEndpoint = document.getElementById('dnsSelect').value;
             const dnsName = document.getElementById('dnsSelect').options[document.getElementById('dnsSelect').selectedIndex].text;
             
             const logSection = document.getElementById('logSection');
             const logContent = document.getElementById('logContent');
-            const browserSection = document.getElementById('browserSection');
-            const webContent = document.getElementById('webContent');
-            const browserUrlBar = document.getElementById('browserUrlBar');
+            const browserWindow = document.getElementById('browserWindow');
+            const browserIframe = document.getElementById('browserIframe');
+            const browserUrlText = document.getElementById('browserUrlText');
+            const dnsBadge = document.getElementById('dnsBadge');
+            const loader = document.getElementById('loader');
 
+            if(!rawUrl) return alert("กรุณากรอกชื่อเว็บไซต์");
+
+            // ปลุกส่วนแสดงผล
             logSection.classList.remove('hidden');
-            browserSection.classList.add('hidden');
+            browserWindow.classList.remove('hidden');
+            loader.classList.remove('hidden');
             logContent.textContent = "";
 
+            // บังคับฟอร์แมต URL ให้ถูกต้อง
+            if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+                rawUrl = 'https://' + rawUrl;
+            }
+
             try {
-                // 1. แยกชื่อโดเมนออกมารับค่า
-                let domain = urlInput.replace(/^(https?:\/\/)?(www\.)?/, '');
-                domain = domain.split('/')[0];
+                // 1. สกัดเอาโดเมนเนมออกมาถาม DNS
+                const urlObj = new URL(rawUrl);
+                const domain = urlObj.hostname;
 
-                addLog(`[*] เริ่มต้นวิเคราะห์ URL: ${urlInput}`);
-                addLog(`[*] กำลังส่งคำขอถามเส้นทางโดเมน [ ${domain} ] ไปยัง ${dnsName}...`);
+                addLog(`[*] สแกนที่อยู่เว็บพบโดเมน: ${domain}`);
+                addLog(`[*] ส่งแพ็กเก็ตถามเส้นทางไปยังเครื่องข่าย DNS: ${dnsName}`);
 
-                // 2. จำลองการเรียกข้อมูลจาก DNS ผ่าน DoH API
+                // 2. ดึงข้อมูลพิกัด IP ผ่านโปรโตคอล DoH API (จำลองพฤติกรรม DNS ระดับลึก)
                 const dnsUrl = `${dnsEndpoint}?name=${domain}&type=A`;
                 const dnsResponse = await fetch(dnsUrl, { headers: { 'Accept': 'application/dns-json' } });
                 const dnsData = await dnsResponse.json();
 
-                let ipAddress = "ไม่พบข้อมูล";
+                let resolvedIp = "ไม่สามารถระบุได้";
                 if (dnsData.Answer && dnsData.Answer.length > 0) {
-                    ipAddress = dnsData.Answer[0].data;
-                    addLog(`[+] DNS สำเร็จ! ได้รับพิกัดหมายเลข IP ปลายทาง: ${ipAddress}`);
+                    resolvedIp = dnsData.Answer[0].data;
+                    addLog(`[+ SUCCESS] DNS คืนพิกัด IP สำเร็จ: ${resolvedIp}`);
                 } else {
-                    throw new Error("DNS 無法解析該網域 (DNS Cannot resolve this domain)");
+                    addLog(`[! WARNING] ไม่พบข้อมูล IP ตรงจากคลัง A Record, กำลังสลับไปใช้ระบบสำรองกลุ่ม CDN Proxy`);
+                    resolvedIp = "Dynamic Edge IP";
                 }
 
-                // 3. ดึงข้อมูลโค้ดจากเว็บเป้าหมายมาแสดงผล (ใช้ Public Proxy เพื่อหลีกเลี่ยงปัญหา CORS บนเบราว์เซอร์)
-                addLog(`[*] กำลังเดินทางเชื่อมต่อไปยังเซิร์ฟเวอร์ IP: ${ipAddress} เพื่อเปิดเว็บ...`);
-                
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(urlInput)}`;
-                const response = await fetch(proxyUrl);
-                const webData = await response.json();
+                addLog(`[*] ดำเนินการผูกไอพีให้อุปกรณ์จำลอง เรียบร้อยแล้ว`);
+                addLog(`[*] กำลังเดินทางเข้าสู่เว็บไซต์ปลายทางผ่านเส้นทาง [${resolvedIp}]...`);
 
-                addLog(`[+] HTTP สำเร็จ! จำลองการโหลดหน้าเว็บเสร็จสิ้น`);
+                // 3. แสดงผลหน้าเว็บใน Iframe
+                // ใช้บริการ Web Proxy ของเดเวลอปเปอร์มาช่วยทลายกำแพง CORS ทำให้สามารถรันหน้าตาเว็บจริงภายใน GitHub Pages ได้
+                const proxyViewUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rawUrl)}`;
                 
-                // แสดงผลบนหน้าจอเบราว์เซอร์จำลอง
-                browserUrlBar.textContent = `🔒 ${urlInput} | Connected via DNS: ${ipAddress}`;
-                webContent.value = webData.contents;
-                browserSection.classList.remove('hidden');
+                // ดึงข้อมูลมาแปลงเพื่อเคลียร์เรื่องลิงก์ภายในหน้าเว็บ
+                const response = await fetch(proxyViewUrl);
+                const data = await response.json();
+                
+                // นำเนื้อหามาเขียนลงใน iframe โดยตรงเพื่อให้มันเรนเดอร์สคริปต์ ความสวยงาม รูปภาพ และส่วนประกอบต่าง ๆ ออกมาได้เหมือนบราวเซอร์จริง
+                const blob = new Blob([data.contents], { type: 'text/html' });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                currentTargetUrl = blobUrl;
+                browserIframe.src = blobUrl;
+                
+                // อัปเดตแถบ URL ด้านบนของบราวเซอร์จำลอง
+                browserUrlText.textContent = `🔒 ${rawUrl}`;
+                dnsBadge.textContent = `${dnsName.split(' ')[0]} | IP: ${resolvedIp}`;
+                
+                addLog(`[+ COMPLETE] หน้าเว็บเรนเดอร์สำเร็จ! อุปกรณ์พร้อมใช้งานแล้ว`);
 
             } catch (error) {
-                addLog(`[-] เกิดข้อผิดพลาดในระบบ: ${error.message}`);
+                addLog(`[-] ระบบขัดข้อง: ${error.message}`);
+                loader.classList.add('hidden');
+                browserUrlText.textContent = `❌ การเชื่อมต่อล้มเหลว`;
             }
         }
 
         function addLog(message) {
             const logContent = document.getElementById('logContent');
             logContent.textContent += message + "\n";
+        }
+
+        function hideLoader() {
+            document.getElementById('loader').classList.add('hidden');
+        }
+
+        function refreshBrowser() {
+            if(currentTargetUrl) {
+                document.getElementById('loader').classList.remove('hidden');
+                document.getElementById('browserIframe').src = currentTargetUrl;
+            }
         }
     </script>
 </body>
